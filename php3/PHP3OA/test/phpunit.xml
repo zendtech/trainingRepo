@@ -1,0 +1,18 @@
+<phpunit
+  backupGlobals="false"
+  backupStaticAttributes="false"
+  syntaxCheck="false"
+  convertErrorsToExceptions="true"
+  convertNoticesToExceptions="true"
+  convertWarningsToExceptions="true">
+  <filter>
+    <whitelist>
+      <directory suffix=".php">../src</directory>
+    </whitelist>
+  </filter>
+  <testsuites>
+    <testsuite name="orderapp">
+      <directory suffix=".php">Index</directory>
+    </testsuite>
+  </testsuites>
+</phpunit>

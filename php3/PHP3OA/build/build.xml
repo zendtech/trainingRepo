@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="OrderApp" default="main">
+
+    <!--Define presets -->
+    <tstamp>
+        <format property="logTime"
+                pattern="%Y%m%d:%H%M%S" />
+    </tstamp>
+
+    <!--Set local parameters -->
+    <property name="src"
+              value="${project.basedir}/.."/>
+
+    <!-- Read in external properties -->
+    <property file="build.properties"/>
+    <property file="build.live.properties"/>
+    <property file="build.punit.properties"/>
+
+    <!-- Define the release build version properties -->
+    <property
+            name="deploy.remote.new.directory"
+            value="${deploy.webroot}/${deploy.host.directory}/build-${deploy.newversion}"/>
+    <property
+            name="deploy.remote.old.directory"
+            value="${deploy.webroot}/${deploy.host.directory}/build-${deploy.oldversion}"/>
+
+    <!-- Here we go -->
+    <echo message="Deploying to: ${deploy.host.directory}"/>
+
+    <!--Execute main build target -->
+    <target name="main"
+            description="Executes shell commands on remote server"
+            depends="config, public, logStart, punit">
+
+        <!-- Check if we are adding or updating a new version -->
+        <property name="cmd" value="if test -d ${deploy.remote.new.directory}; then echo 'true'; fi"/>
+        <exec command="${cmd}"
+            outputProperty="directoryTest"/>
+        <if>
+            <equals
+                    arg1="true"
+                    arg2="${directoryTest}"/>
+            <then>
+                <echo message="Directory exists, updating..."/>
+            </then>
+            <else>
+                <!--Create new version directory, rsync old version directory to new -->
+                <echo message="Initialize new release at: ${deploy.remote.new.directory}"/>
+                <property name="setNewTarget"
+                          value="echo '${deploy.password}' | sudo -S mkdir -p ${deploy.remote.new.directory}"/>
+                <exec command="${setNewTarget}"/>
+
+                <!-- Conditionally check if we are adding or updating a new version -->
+                <property name="checkOldCmd" value="if test -d ${deploy.remote.old.directory}; then echo 'true'; fi"/>
+                <exec command="${checkOldCmd}"
+                        outputProperty="checkOld"/>
+                <if>
+                    <equals
+                        arg1="true"
+                        arg2="${checkOld}"/>
+                    <then>
+                        <echo message="Copying old target"/>
+                        <property name="copyNewTarget"
+                                  value="echo '${deploy.password}' | sudo -S cp -rp ${deploy.remote.old.directory}/* ${deploy.remote.new.directory}"/>
+                        <exec command="${copyNewTarget}"/>
+                    </then>
+                </if>
+
+                <!--Set permissions on web host-->
+                <echo message="Setting up web root permissions to: ${deploy.directory.chmod}"/>
+                <exec command="echo '${deploy.password}' | sudo -S chmod -R ${deploy.directory.chmod} ${deploy.webroot}/${deploy.host}"/>
+            </else>
+        </if>
+
+        <!--Execute the fileSync task. This will only sync changes and will delete files not on the source-->
+        <echo message="Attempting filesync command on remote server ${deploy.host} from ${src} to ${deploy.remote.new.directory}"/>
+        <filesync
+                rsyncPath="${filesync.rsync.path}"
+                sourceDir="${src}"
+                destinationDir="${deploy.username}@${deploy.host}:${deploy.remote.new.directory}"
+                dryRun="${filesync.dryrun}"
+                verbose="${filesync.verbose}"
+                itemizeChanges="${filesync.itemizechanges}"
+                excludeFile="${src}/build/${filesync.excludefile}"
+                delete="${filesync.delete}"
+                options="${filesync.options}"
+                identityFile="id_rsa.pub"/>
+        <property
+            name="deployResult"
+            value="true"/>
+        <echo message="Filesync Successful"/>
+
+        <!--Conditionally build the link on the deployed host -->
+        <if>
+            <equals
+                    arg1="true"
+                    arg2="${directoryTest}"/>
+            <then>
+                <echo message="Directory exists, symlink update unnecessary..."/>
+            </then>
+            <else>
+                 <!--Execute the Sym Link command -->
+                <echo message="Attempting sym link command on remote server ${deploy.host} for build-${deploy.newversion}"/>
+                <property name="linkNewTarget"
+                          value="echo '${deploy.password}' | sudo -S ln -sfn ${deploy.remote.new.directory} ${deploy.webroot}/${deploy.host}.${deploy.dns.ext}"/>
+                <exec command="${linkNewTarget}"/>
+                <echo message="Symlink successful"/>
+            </else>
+        </if>
+
+        <!--Log deployment finish -->
+        <echo msg="Adding finish deployment log entry" />
+        <tstamp>
+            <format property="endLogTime" pattern="%Y%m%d:%H%M%S" />
+        </tstamp>
+        <exec command="echo '${endLogTime} Deployment finished' >> ${src}/build/target/${env}/log/deploy.log"/>
+        <echo message="Deployment complete"/>
+    </target>
+
+    <!--Host config setup target-->
+    <target name="config">
+        <echo msg="Executing environment configuration tasks"/>
+
+        <!--Copy tasks-->
+        <echo msg="Executing config copy tasks ..."/>
+
+        <!--Copy the host-specific application config file-->
+        <copy   file="${src}/build/target/${env}/config/config.php"
+                tofile="${src}/config/config.php"
+                overwrite="true"
+                tstamp="true"/>
+        <echo message="Copy Public Assets Task Successful"/>
+    </target>
+
+    <!--Host public files copy-->
+    <target name="public">
+        <echo message="Executing target public files copy"/>
+
+        <!--Copy files fileset-->
+        <copy   todir="${src}/public"
+                overwrite="true">
+            <fileset
+                    dir="${src}/build/target/${env}/public"
+                    id="public_files">
+                <!--<include name="css/**"/>-->
+                <!--<include name="fonts/**"/>-->
+                <include name="images/**"/>
+                <!--<include name="js/**"/>-->
+            </fileset>
+        </copy>
+        <echo message="Copy Public Assets Task Successful"/>
+    </target>
+
+    <!--Log deployment start data -->
+    <target name="logStart">
+        <if>
+            <equals
+                    arg1="true"
+                    arg2="${log.runlog}"/>
+            <then>
+                <echo msg="Creating deployment log entry" />
+                <exec command="echo '${logTime} Deploy Start, ${deploy.username}, Version: ${deploy.newversion}, Server: ${deploy.host}:${deploy.host.port}' >> ${src}/build/target/${env}/log/deploy.log"/>
+            </then>
+            <else>
+                <echo msg="No pre-deploy logging"/>
+            </else>
+        </if>
+    </target>
+
+    <!--Execute PhpUnit on test suite-->
+    <target name="punit">
+        <echo message="Executing PhpUnit"/>
+        <exec command="${punit.exec} ${punit.args}"
+              dir="${src}/test"/>
+    </target>
+</project>
