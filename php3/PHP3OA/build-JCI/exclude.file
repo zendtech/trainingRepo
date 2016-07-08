@@ -1,0 +1,13 @@
+.svn
+.git
+build
+.log*
+tme
+.gitignore
+.idea
+sql
+tests
+.dist
+.project
+zz.delete.me.local.php
+target/local/*

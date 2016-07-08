@@ -1,0 +1,29 @@
+20160623:123759 Deploy Start, deploy, Version: 0.0.2, Server: orderapp:22
+20160623:123800 Deployment finished
+20160624:121229 Deploy Start, deploy, Version: 0.0.2, Server: orderapp:22
+20160624:121231 Deployment finished
+20160707:093550 Deploy Start, deploy, Version: 0.0.1, Server: orderapp:22
+20160707:093918 Deploy Start, deploy, Version: 0.0.1, Server: orderapp:22
+20160707:094029 Deploy Start, jenkins, Version: 0.0.1, Server: orderapp:22
+20160707:094029 Deployment finished
+20160707:094130 Deploy Start, deploy, Version: 0.0.1, Server: orderapp:22
+20160707:094347 Deploy Start, deploy, Version: 0.0.1, Server: orderapp:22
+20160707:094758 Deploy Start, deploy, Version: 0.0.1, Server: orderapp:22
+20160707:095338 Deploy Start, deploy, Version: 0.0.1, Server: orderapp:22
+20160707:095626 Deploy Start, jenkins, Version: 0.0.1, Server: orderapp:22
+20160707:095627 Deployment finished
+20160707:095656 Deploy Start, jenkins, Version: 0.0.1, Server: orderapp:22
+20160707:095657 Deployment finished
+20160707:095752 Deploy Start, jenkins, Version: 0.0.1, Server: orderapp:22
+20160707:095752 Deployment finished
+20160707:100106 Deploy Start, jenkins, Version: 0.0.1, Server: orderapp:22
+20160707:100106 Deployment finished
+20160707:100547 Deploy Start, jenkins, Version: 2016.46, Server: orderapp:22
+20160707:100547 Deployment finished
+20160707:102736 Deploy Start, jenkins, Version: 2016.47, Server: orderapp:22
+20160707:102738 Deployment finished
+20160707:103318 Deploy Start, jenkins, Version: 2016.48, Server: orderapp:22
+20160707:103320 Deployment finished
+20160708:121435 Deploy Start, jenkins, Version: 2016.71, Server: orderapp:22
+20160708:121435 Deployment finished
+20160708:134224 Deployment finished

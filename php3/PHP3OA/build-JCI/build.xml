@@ -14,63 +14,30 @@
     <!-- Read in external properties -->
     <property file="build.properties"/>
     <property file="build.live.properties"/>
-    <property file="build.punit.properties"/>
 
     <!-- Define the release build version properties -->
     <property
             name="deploy.remote.new.directory"
             value="${deploy.webroot}/${deploy.host.directory}/${deploy.newversion}"/>
-    <property
-            name="deploy.remote.old.directory"
-            value="${deploy.webroot}/${deploy.host.directory}/${deploy.oldversion}"/>
 
     <!-- Here we go -->
     <echo message="Deploying to: ${deploy.host.directory}"/>
 
     <!--Execute main build target -->
     <target name="main"
-            description="Executes shell commands on remote server"
-            depends="config, public, logStart, punit">
+            description="Executes shell commands on remote server">
 
-        <!-- Check if we are adding or updating a new version -->
-        <property name="cmd" value="if test -d ${deploy.remote.new.directory}; then echo 'true'; fi"/>
-        <exec command="${cmd}"
-            outputProperty="directoryTest"/>
-        <if>
-            <equals
-                    arg1="true"
-                    arg2="${directoryTest}"/>
-            <then>
-                <echo message="Directory exists, updating..."/>
-            </then>
-            <else>
-                <!--Create new version directory, rsync old version directory to new -->
-                <echo message="Initialize new release at: ${deploy.remote.new.directory}"/>
-                <property name="setNewTarget"
-                          value="echo '${deploy.password}' | sudo -S mkdir -p ${deploy.remote.new.directory}"/>
-                <exec command="${setNewTarget}"/>
+        <!--Create new version directory -->
+        <echo message="Initialize new release at: ${deploy.remote.new.directory}"/>
 
-                <!-- Conditionally check if we are adding or updating a new version -->
-                <property name="checkOldCmd" value="if test -d ${deploy.remote.old.directory}; then echo 'true'; fi"/>
-                <exec command="${checkOldCmd}"
-                        outputProperty="checkOld"/>
-                <if>
-                    <equals
-                        arg1="true"
-                        arg2="${checkOld}"/>
-                    <then>
-                        <echo message="Copying old target"/>
-                        <property name="copyNewTarget"
-                                  value="echo '${deploy.password}' | sudo -S cp -rp ${deploy.remote.old.directory}/* ${deploy.remote.new.directory}"/>
-                        <exec command="${copyNewTarget}"/>
-                    </then>
-                </if>
+        <property name="setNewTarget"
+                  value="echo '${deploy.password}' | sudo -S mkdir -p ${deploy.remote.new.directory}"/>
+        <echo message="Mkdir command = ${setNewTarget}"/>
+        <exec command="${setNewTarget}"/>
 
-                <!--Set permissions on web host-->
-                <echo message="Setting up web root permissions to: ${deploy.directory.chmod}"/>
-                <exec command="echo '${deploy.password}' | sudo -S chmod -R ${deploy.directory.chmod} ${deploy.webroot}/${deploy.host}"/>
-            </else>
-        </if>
+        <!--Set permissions on web host-->
+        <echo message="Setting up web root permissions to: ${deploy.directory.chmod}"/>
+        <exec command="echo '${deploy.password}' | sudo -S chmod -R ${deploy.directory.chmod} ${deploy.webroot}/${deploy.host}"/>
 
         <!--Execute the fileSync task. This will only sync changes and will delete files not on the source-->
         <echo message="Attempting filesync command on remote server ${deploy.host} from ${src} to ${deploy.remote.new.directory}"/>
@@ -153,25 +120,26 @@
         <echo message="Copy Public Assets Task Successful"/>
     </target>
 
-    <!--Log deployment start data -->
-    <target name="logStart">
-        <if>
-            <equals
-                    arg1="true"
-                    arg2="${log.runlog}"/>
-            <then>
-                <echo msg="Creating deployment log entry" />
-                <exec command="echo '${logTime} Deploy Start, ${deploy.username}, Version: ${deploy.newversion}, Server: ${deploy.host}:${deploy.host.port}' >> ${src}/${build.dir}/target/${env}/log/deploy.log"/>
-            </then>
-            <else>
-                <echo msg="No pre-deploy logging"/>
-            </else>
-        </if>
+    <target name="pmd">
+        <echo message="Executing pmd analysis"/>
+        <property file="build.pmd.properties"/>
+        <mkdir dir="${pmd.output.xml.dir}"/>
+        <mkdir dir="${pmd.output.html.dir}"/>
+        <exec   command="${pmd.exec} ${pmd.args}"
+                dir="${project.basedir}"
+                passthru="true"/>
+        <xslt   file="${pmd.output.xml.file}"
+                tofile="${pmd.output.html.file}"
+                style="${pmd.style}"/>
     </target>
 
     <!--Execute PhpUnit on test suite-->
     <target name="punit">
-        <echo message="Executing PhpUnit"/>
+        <echo message="Executing unit tests"/>
+        <property file="build.punit.properties"/>
+        <mkdir dir="${punit.output.html.dir}"/>
+
+        <!--Execute unit tests-->
         <exec command="${punit.exec} ${punit.args}"
               dir="${src}/test"/>
     </target>
